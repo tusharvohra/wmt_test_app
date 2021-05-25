@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:wmt_test_app/src/blocs/user_bloc.dart';
 import 'package:wmt_test_app/src/models/user.dart';
 import 'package:wmt_test_app/src/models/user_list.dart';
@@ -37,15 +36,21 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: Text("WMT User List App"),
       ),
-      body: BlocBuilder(
-        cubit: _bloc,
-        builder: (BuildContext context, state) {
-          return state is ResponseState
-              ? _userList(state.userList)
-              : Center(
-                  child: CircularProgressIndicator(),
-                );
+      body: RefreshIndicator(
+        onRefresh: () {
+          _bloc.add(GetUserListEvent("1", "25"));
+          return Future.delayed(Duration(seconds: 1));
         },
+        child: BlocBuilder(
+          cubit: _bloc,
+          builder: (BuildContext context, state) {
+            return state is ResponseState
+                ? _userList(state.userList)
+                : Center(
+                    child: CircularProgressIndicator(),
+                  );
+          },
+        ),
       ),
     );
   }
@@ -53,14 +58,14 @@ class _HomePageState extends State<HomePage> {
   Widget _userList(UserList userList) {
     return OrientationBuilder(builder: (context, orientation) {
       if (orientation == Orientation.portrait) {
-        return _potraitView(userList);
+        return _portraitView(userList);
       } else {
         return _landscapeView(userList);
       }
     });
   }
 
-  Widget _potraitView(UserList userList) {
+  Widget _portraitView(UserList userList) {
     return ListView.builder(
         itemCount: userList.users.length,
         itemBuilder: (context, index) {
@@ -79,53 +84,62 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _userItem(User user) {
-    return InkWell(
-      onTap: () => _onTap(),
-      child: Container(
-        padding: EdgeInsets.all(10.0),
-        margin: EdgeInsets.fromLTRB(15.0, 18.0, 15.0, 15),
-        decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20.0),
-            boxShadow: [
-              BoxShadow(
-                  color: Color.fromRGBO(0, 0, 0, 0.2),
-                  blurRadius: 20,
-                  offset: Offset(0, 10))
-            ]),
-        height: 150,
-        child: Row(
-          children: [
-            Container(
-              height: 80,
-              width: 80,
-              decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  image: DecorationImage(
-                      fit: BoxFit.fill,
-                      image:
-                          CachedNetworkImageProvider(user.picture.thumbnail))),
+    return Container(
+      margin: EdgeInsets.fromLTRB(15.0, 18.0, 15.0, 15),
+      decoration:
+          BoxDecoration(borderRadius: BorderRadius.circular(20.0), boxShadow: [
+        BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.2),
+            blurRadius: 20,
+            offset: Offset(0, 10))
+      ]),
+      height: 150,
+      child: Material(
+        clipBehavior: Clip.hardEdge,
+        borderRadius: BorderRadius.circular(20.0),
+        child: InkWell(
+          radius: 20.0,
+          onTap: _onTap,
+          child: Container(
+            padding: EdgeInsets.all(10.0),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20.0),
             ),
-            SizedBox(
-              width: 15.0,
-            ),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            constraints: BoxConstraints.expand(),
+            child: Row(
               children: [
-                Text(
-                  "${user.name.title} ${user.name.first} ${user.name.last}",
-                  style: Theme.of(context).textTheme.bodyText1,
+                Container(
+                  height: 80,
+                  width: 80,
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      image: DecorationImage(
+                          fit: BoxFit.fill,
+                          image:
+                              CachedNetworkImageProvider(user.picture.large))),
                 ),
                 SizedBox(
-                  height: 8.0,
+                  width: 15.0,
                 ),
-                Text("${user.email}"),
-                Utils.getDob(user.dob.date, context)
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "${user.name.title} ${user.name.first} ${user.name.last}",
+                      style: Theme.of(context).textTheme.bodyText1,
+                    ),
+                    SizedBox(
+                      height: 8.0,
+                    ),
+                    Text("${user.email}"),
+                    Utils.getDob(user.dob.date, context)
+                  ],
+                )
               ],
-            )
-          ],
+            ),
+          ),
         ),
       ),
     );
@@ -159,8 +173,7 @@ class _HomePageState extends State<HomePage> {
                     shape: BoxShape.circle,
                     image: DecorationImage(
                         fit: BoxFit.fill,
-                        image: CachedNetworkImageProvider(
-                            user.picture.thumbnail))),
+                        image: CachedNetworkImageProvider(user.picture.large))),
               ),
             ),
             SizedBox(
